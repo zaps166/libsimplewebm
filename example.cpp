@@ -80,10 +80,10 @@ int main(int argc, char *argv[])
 		VPXDecoder videoDec(demuxer, 8);
 		OpusVorbisDecoder audioDec(demuxer);
 
-		WebMDemuxer::Frame videoFrame, audioFrame;
+		WebMFrame videoFrame, audioFrame;
 
 		VPXDecoder::Image image;
-		short *pcm = audioDec.isOpen() ? new short[audioDec.getBufferAllSamples()] : NULL;
+		short *pcm = audioDec.isOpen() ? new short[audioDec.getBufferSamples() * demuxer.getChannels()] : NULL;
 
 		fprintf(stderr, "Length: %f\n", demuxer.getLength());
 

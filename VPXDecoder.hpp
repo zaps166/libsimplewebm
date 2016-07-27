@@ -27,8 +27,6 @@
 
 #include "WebMDemuxer.hpp"
 
-#include <set>
-
 struct vpx_codec_ctx;
 
 class VPXDecoder
@@ -46,8 +44,6 @@ public:
 		int chromaShiftW, chromaShiftH;
 		unsigned char *planes[3];
 		int linesize[3];
-
-		double time;
 	};
 
 	enum IMAGE_ERROR
@@ -65,13 +61,18 @@ public:
 		return (bool)m_ctx;
 	}
 
-	bool decode(const WebMDemuxer::Frame &frame);
+	inline int getFramesDelay() const
+	{
+		return m_delay;
+	}
+
+	bool decode(const WebMFrame &frame);
 	IMAGE_ERROR getImage(Image &image); //The data is NOT copied! Only 3-plane, 8-bit images are supported.
 
 private:
-	std::set<double *> m_timesPool, m_timesInUse;
 	vpx_codec_ctx *m_ctx;
 	const void *m_iter;
+	int m_delay;
 };
 
 #endif // VPXDECODER_HPP

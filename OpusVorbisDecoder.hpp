@@ -40,9 +40,12 @@ public:
 
 	bool isOpen() const;
 
-	int getBufferAllSamples() const;
+	inline int getBufferSamples() const
+	{
+		return m_numSamples;
+	}
 
-	bool getPCMS16(WebMDemuxer::Frame &frame, short *buffer, int &numOutSamples);
+	bool getPCMS16(WebMFrame &frame, short *buffer, int &numOutSamples);
 
 private:
 	bool openVorbis(const WebMDemuxer &demuxer);

@@ -32,14 +32,19 @@
 
 VPXDecoder::VPXDecoder(const WebMDemuxer &demuxer, unsigned threads) :
 	m_ctx(NULL),
-	m_iter(NULL)
+	m_iter(NULL),
+	m_delay(0)
 {
+	if (threads > 8)
+		threads = 8;
+	else if (threads < 1)
+		threads = 1;
+
 	const vpx_codec_dec_cfg_t codecCfg = {
 		threads,
 		0,
 		0
 	};
-
 	vpx_codec_iface_t *codecIface = NULL;
 
 	switch (demuxer.getVideoCodec())
@@ -49,13 +54,14 @@ VPXDecoder::VPXDecoder(const WebMDemuxer &demuxer, unsigned threads) :
 			break;
 		case WebMDemuxer::VIDEO_VP9:
 			codecIface = vpx_codec_vp9_dx();
+			m_delay = threads - 1;
 			break;
 		default:
 			return;
 	}
 
 	m_ctx = new vpx_codec_ctx_t;
-	if (vpx_codec_dec_init(m_ctx, codecIface, &codecCfg, VPX_CODEC_USE_FRAME_THREADING))
+	if (vpx_codec_dec_init(m_ctx, codecIface, &codecCfg, m_delay > 0 ? VPX_CODEC_USE_FRAME_THREADING : 0))
 	{
 		delete m_ctx;
 		m_ctx = NULL;
@@ -65,35 +71,21 @@ VPXDecoder::~VPXDecoder()
 {
 	if (m_ctx)
 	{
-		for (std::set<double *>::iterator it = m_timesPool.begin(), itEnd = m_timesPool.end(); it != itEnd; ++it)
-			delete *it;
-		for (std::set<double *>::iterator it = m_timesInUse.begin(), itEnd = m_timesInUse.end(); it != itEnd; ++it)
-			delete *it;
 		vpx_codec_destroy(m_ctx);
 		delete m_ctx;
 	}
 }
 
-bool VPXDecoder::decode(const WebMDemuxer::Frame &frame)
+bool VPXDecoder::decode(const WebMFrame &frame)
 {
-	double *time;
-	if (!m_timesPool.empty())
-		time = *m_timesPool.begin();
-	else
-		time = new double;
-	m_timesInUse.insert(time);
-	*time = frame.time;
-
 	m_iter = NULL;
-
-	return !vpx_codec_decode(m_ctx, frame.buffer, frame.bufferSize, time, 0);
+	return !vpx_codec_decode(m_ctx, frame.buffer, frame.bufferSize, NULL, 0);
 }
 VPXDecoder::IMAGE_ERROR VPXDecoder::getImage(Image &image)
 {
 	IMAGE_ERROR err = NO_FRAME;
 	if (vpx_image_t *img = vpx_codec_get_frame(m_ctx, &m_iter))
 	{
-		double *time = (double *)img->user_priv;
 		if ((img->fmt & VPX_IMG_FMT_PLANAR) && !(img->fmt & (VPX_IMG_FMT_HAS_ALPHA | VPX_IMG_FMT_HIGHBITDEPTH)))
 		{
 			if (img->stride[0] && img->stride[1] && img->stride[2])
@@ -114,8 +106,6 @@ VPXDecoder::IMAGE_ERROR VPXDecoder::getImage(Image &image)
 				image.linesize[1] = img->stride[uPlane];
 				image.linesize[2] = img->stride[vPlane];
 
-				image.time = *time;
-
 				err = NO_ERROR;
 			}
 		}
@@ -123,8 +113,6 @@ VPXDecoder::IMAGE_ERROR VPXDecoder::getImage(Image &image)
 		{
 			err = UNSUPPORTED_FRAME;
 		}
-		m_timesPool.insert(time);
-		m_timesInUse.erase(time);
 	}
 	return err;
 }

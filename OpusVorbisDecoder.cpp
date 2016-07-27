@@ -71,12 +71,7 @@ bool OpusVorbisDecoder::isOpen() const
 	return (m_vorbis || m_opus);
 }
 
-int OpusVorbisDecoder::getBufferAllSamples() const
-{
-	return m_numSamples * m_channels;
-}
-
-bool OpusVorbisDecoder::getPCMS16(WebMDemuxer::Frame &frame, short *buffer, int &numOutSamples)
+bool OpusVorbisDecoder::getPCMS16(WebMFrame &frame, short *buffer, int &numOutSamples)
 {
 	if (m_vorbis)
 	{
@@ -88,7 +83,7 @@ bool OpusVorbisDecoder::getPCMS16(WebMDemuxer::Frame &frame, short *buffer, int 
 		if (vorbis_synthesis_blockin(&m_vorbis->dspState, &m_vorbis->block))
 			return false;
 
-		const int maxSamples = getBufferAllSamples();
+		const int maxSamples = getBufferSamples();
 		int samplesCount, count = 0;
 		float **pcm;
 		while ((samplesCount = vorbis_synthesis_pcmout(&m_vorbis->dspState, &pcm)))

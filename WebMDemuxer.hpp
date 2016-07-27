@@ -37,6 +37,25 @@ namespace mkvparser {
 	class AudioTrack;
 }
 
+class WebMFrame
+{
+	WebMFrame(const WebMFrame &);
+	void operator =(const WebMFrame &);
+public:
+	WebMFrame();
+	~WebMFrame();
+
+	inline bool isValid() const
+	{
+		return bufferSize > 0;
+	}
+
+	long bufferSize, bufferCapacity;
+	unsigned char *buffer;
+	double time;
+	bool key;
+};
+
 class WebMDemuxer
 {
 	WebMDemuxer(const WebMDemuxer &);
@@ -53,25 +72,6 @@ public:
 		NO_AUDIO,
 		AUDIO_VORBIS,
 		AUDIO_OPUS
-	};
-
-	class Frame
-	{
-		Frame(const Frame &);
-		void operator =(const Frame &);
-	public:
-		Frame();
-		~Frame();
-
-		inline bool isValid() const
-		{
-			return bufferSize > 0;
-		}
-
-		long bufferSize, bufferCapacity;
-		unsigned char *buffer;
-		double time;
-		bool key;
 	};
 
 	WebMDemuxer(mkvparser::IMkvReader *reader, int videoTrack = 0, int audioTrack = 0);
@@ -98,7 +98,7 @@ public:
 	int getChannels() const;
 	int getAudioDepth() const;
 
-	bool readFrame(Frame *videoFrame, Frame *audioFrame);
+	bool readFrame(WebMFrame *videoFrame, WebMFrame *audioFrame);
 
 private:
 	inline bool notSupportedTrackNumber(long videoTrackNumber, long audioTrackNumber) const;

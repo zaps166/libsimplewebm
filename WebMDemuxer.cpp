@@ -30,6 +30,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+WebMFrame::WebMFrame() :
+	bufferSize(0), bufferCapacity(0),
+	buffer(NULL),
+	time(0),
+	key(false)
+{}
+WebMFrame::~WebMFrame()
+{
+	free(buffer);
+}
+
+/**/
+
 WebMDemuxer::WebMDemuxer(mkvparser::IMkvReader *reader, int videoTrack, int audioTrack) :
 	m_reader(reader),
 	m_segment(NULL),
@@ -130,7 +143,7 @@ int WebMDemuxer::getAudioDepth() const
 	return m_audioTrack->GetBitDepth();
 }
 
-bool WebMDemuxer::readFrame(Frame *videoFrame, Frame *audioFrame)
+bool WebMDemuxer::readFrame(WebMFrame *videoFrame, WebMFrame *audioFrame)
 {
 	const long videoTrackNumber = (videoFrame && m_videoTrack) ? m_videoTrack->GetNumber() : 0;
 	const long audioTrackNumber = (audioFrame && m_audioTrack) ? m_audioTrack->GetNumber() : 0;
@@ -190,7 +203,7 @@ bool WebMDemuxer::readFrame(Frame *videoFrame, Frame *audioFrame)
 		}
 	} while (blockEntryEOS || notSupportedTrackNumber(videoTrackNumber, audioTrackNumber));
 
-	Frame *frame = NULL;
+	WebMFrame *frame = NULL;
 
 	const long trackNumber = m_block->GetTrackNumber();
 	if (trackNumber == videoTrackNumber)
@@ -204,8 +217,7 @@ bool WebMDemuxer::readFrame(Frame *videoFrame, Frame *audioFrame)
 		return false;
 	}
 
-	const mkvparser::Block::Frame &blockFrame = m_block->GetFrame(m_blockFrameIndex);
-	++m_blockFrameIndex;
+	const mkvparser::Block::Frame &blockFrame = m_block->GetFrame(m_blockFrameIndex++);
 	if (blockFrame.len > frame->bufferCapacity)
 	{
 		unsigned char *newBuff = (unsigned char *)realloc(frame->buffer, frame->bufferCapacity = blockFrame.len);
@@ -226,17 +238,4 @@ inline bool WebMDemuxer::notSupportedTrackNumber(long videoTrackNumber, long aud
 {
 	const long trackNumber = m_block->GetTrackNumber();
 	return (trackNumber != videoTrackNumber && trackNumber != audioTrackNumber);
-}
-
-/**/
-
-WebMDemuxer::Frame::Frame() :
-	bufferSize(0), bufferCapacity(0),
-	buffer(NULL),
-	time(0),
-	key(false)
-{}
-WebMDemuxer::Frame::~Frame()
-{
-	free(buffer);
 }
