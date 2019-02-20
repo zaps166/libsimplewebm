@@ -33,7 +33,8 @@
 VPXDecoder::VPXDecoder(const WebMDemuxer &demuxer, unsigned threads) :
 	m_ctx(NULL),
 	m_iter(NULL),
-	m_delay(0)
+	m_delay(0),
+	m_last_space(VPX_CS_UNKNOWN)
 {
 	if (threads > 8)
 		threads = 8;
